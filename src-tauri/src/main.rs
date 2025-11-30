@@ -2,5 +2,5 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 fn main() {
-    ult_clippy_lib::run()
+    rust_board_lib::run()
 }
