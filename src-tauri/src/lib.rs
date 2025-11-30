@@ -1,8 +1,10 @@
-use tauri::{AppHandle, Manager, Emitter};
-use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
+use tauri::{AppHandle, Manager};
 use enigo::{Enigo, Key, Keyboard, Settings, Direction};
 use std::thread;
 use std::time::Duration;
+
+#[cfg(windows)]
+mod keyboard_hook;
 
 #[tauri::command]
 fn paste_selection(app: AppHandle) {
@@ -23,29 +25,18 @@ fn paste_selection(app: AppHandle) {
     let _ = enigo.key(Key::Control, Direction::Release);
 }
 
-fn toggle_window(app: &AppHandle) {
-    let window = app.get_webview_window("main").unwrap();
-    if window.is_visible().unwrap() {
-        window.hide().unwrap();
-    } else {
-        window.show().unwrap();
-        window.set_focus().unwrap();
-    }
-}
-
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_sql::Builder::default().build())
-        .plugin(tauri_plugin_autostart::init(tauri::ipc::Scope::default(), None))
+        .plugin(tauri_plugin_autostart::init(tauri_plugin_autostart::MacosLauncher::LaunchAgent, None))
         .plugin(tauri_plugin_clipboard::init())
-        .plugin(tauri_plugin_global_shortcut::Builder::new().with_handler(|app, shortcut, event| {
-             if event.state == ShortcutState::Pressed {
-                if shortcut.matches(Modifiers::SUPER, Code::KeyV) {
-                    toggle_window(app);
-                }
-            }
-        }).build())
+        .plugin(tauri_plugin_global_shortcut::Builder::new().build())
+        .setup(|_app| {
+            #[cfg(windows)]
+            keyboard_hook::start(_app.handle().clone());
+            Ok(())
+        })
         .invoke_handler(tauri::generate_handler![paste_selection])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -9,11 +9,11 @@
     "global-shortcut:allow-register",
     "autostart:allow-enable",
     "sql:default",
-    "clipboard-manager:allow-read-text",
-    "clipboard-manager:allow-write-text",
-    "clipboard-manager:allow-read-image",
-    "clipboard-manager:allow-write-image",
-    "clipboard-manager:allow-read-html",
-    "clipboard-manager:allow-write-html"
+    "clipboard:allow-read-text",
+    "clipboard:allow-write-text",
+    "clipboard:allow-read-image-binary",
+    "clipboard:allow-write-image-binary",
+    "clipboard:allow-read-html",
+    "clipboard:allow-write-html"
   ]
 }
