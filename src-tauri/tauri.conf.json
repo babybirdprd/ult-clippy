@@ -18,13 +18,14 @@
         "height": 600,
         "visible": false,
         "decorations": false,
-        "transparent": true
+        "transparent": true,
+        "skipTaskbar": true
       }
     ],
-      "trayIcon": {
-        "iconPath": "icons/icon.ico",
-        "showMenuOnLeftClick": true
-      },
+    "trayIcon": {
+      "iconPath": "icons/icon.ico",
+      "showMenuOnLeftClick": true
+    },
     "security": {
       "csp": null
     }

@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import { invoke } from '@tauri-apps/api/core';
 import Database from '@tauri-apps/plugin-sql';
-import { onClipboardUpdate, readText, readImageBase64 } from 'tauri-plugin-clipboard-api';
+import { readText, readImageBase64 } from 'tauri-plugin-clipboard-api';
 import {
   Search,
   Settings,
@@ -99,9 +99,9 @@ const Card = ({ item, onClick, onPin, onEdit, onDelete }: {
         {item.type === 'image' ? (
           <img src={item.content.startsWith('data:') ? item.content : `data:image/png;base64,${item.content}`} alt="clip" className="w-full h-full object-cover rounded-md" />
         ) : isColor ? (
-           <div className="w-full h-full rounded-md flex items-center justify-center" style={{ backgroundColor: item.content }}>
-             <span className="bg-black/50 text-white px-2 py-1 rounded text-sm font-mono">{item.content}</span>
-           </div>
+          <div className="w-full h-full rounded-md flex items-center justify-center" style={{ backgroundColor: item.content }}>
+            <span className="bg-black/50 text-white px-2 py-1 rounded text-sm font-mono">{item.content}</span>
+          </div>
         ) : (
           <p className="text-zinc-300 text-sm whitespace-pre-wrap font-mono break-words line-clamp-5">
             {item.content}
@@ -124,7 +124,7 @@ const Card = ({ item, onClick, onPin, onEdit, onDelete }: {
           >
             <Edit2 size={14} />
           </button>
-           <button
+          <button
             onClick={(e) => { e.stopPropagation(); onDelete(e); }}
             className="p-1.5 rounded-md hover:bg-red-900/50 text-zinc-400 hover:text-red-400"
             title="Delete"
@@ -214,55 +214,56 @@ export default function App() {
 
   // Init
   useEffect(() => {
-    let unlisten: (() => void) | undefined;
+    let pollInterval: number | undefined;
 
     const setup = async () => {
       try {
         const db = await initDb();
         await refreshList();
 
-        // Listen for clipboard changes
-        // Note: CrossCopy's onClipboardUpdate might trigger multiple times or for self.
-        // In a real app, we need to handle "ignore self" if we write to clipboard.
-        unlisten = await onClipboardUpdate(async () => {
-          // Check what's in clipboard
-          // Try text first
-          let content = '';
-          let type: 'text' | 'image' = 'text';
+        console.log("Starting clipboard polling...");
 
+        // Poll clipboard every 500ms instead of using event listener
+        // (onClipboardUpdate doesn't fire reliably)
+        pollInterval = window.setInterval(async () => {
           try {
-             // Try reading text
-             const text = await readText();
-             if (text && text.trim().length > 0) {
-               content = text;
-               type = 'text';
-             } else {
-               // Try reading image
-               // readImageBase64 returns Base64 string usually
-               const img = await readImageBase64();
-               if (img) {
-                 content = img; // usually base64
-                 type = 'image';
-               }
-             }
-          } catch (e) {
-             console.error("Error reading clipboard:", e);
-          }
+            let content = '';
+            let type: 'text' | 'image' = 'text';
 
-          if (content) {
-            // Check if duplicate (top of stack)
-            const top = await db.select<ClipboardItem[]>('SELECT content FROM clipboard_history ORDER BY id DESC LIMIT 1');
-            if (top.length > 0 && top[0].content === content) {
-              return; // Duplicate
+            // Try reading text first
+            const text = await readText();
+            if (text && text.trim().length > 0) {
+              content = text;
+              type = 'text';
+            } else {
+              // Try reading image
+              const img = await readImageBase64();
+              if (img) {
+                content = img;
+                type = 'image';
+              }
             }
 
-            await db.execute(
-              'INSERT INTO clipboard_history (content, type) VALUES ($1, $2)',
-              [content, type]
-            );
-            refreshList();
+            if (content) {
+              // Check if duplicate (top of stack)
+              const top = await db.select<ClipboardItem[]>('SELECT content FROM clipboard_history ORDER BY id DESC LIMIT 1');
+              if (top.length > 0 && top[0].content === content) {
+                return; // Duplicate
+              }
+
+              console.log("New clipboard content detected:", content.substring(0, 50) + "...", "Type:", type);
+
+              await db.execute(
+                'INSERT INTO clipboard_history (content, type) VALUES ($1, $2)',
+                [content, type]
+              );
+              refreshList();
+            }
+          } catch (e) {
+            // Silently ignore clipboard read errors (happens when clipboard is empty or locked)
           }
-        });
+        }, 500); // Poll every 500ms
+
       } catch (e) {
         console.error("Setup failed:", e);
       }
@@ -271,7 +272,9 @@ export default function App() {
     setup();
 
     return () => {
-      if (unlisten) unlisten();
+      if (pollInterval) {
+        clearInterval(pollInterval);
+      }
     };
   }, []);
 
@@ -387,8 +390,8 @@ export default function App() {
           </button>
 
           <button
-             onClick={() => setActiveTab('pinned')}
-             className={cn(
+            onClick={() => setActiveTab('pinned')}
+            className={cn(
               "pb-2 text-sm font-medium transition-colors relative",
               activeTab === 'pinned' ? "text-white" : "text-zinc-500 hover:text-zinc-300"
             )}

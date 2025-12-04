@@ -1,0 +1,44 @@
+    Checking rust_board v0.1.0 (D:\ult-clippy\src-tauri)
+error[E0308]: mismatched types
+    --> src\keyboard_hook.rs:126:17
+     |
+ 123 |             let hook = SetWindowsHookExW(
+     |                        ----------------- arguments to this function are incorrect
+...
+ 126 |                 HINSTANCE(h_mod.0),
+     |                 ^^^^^^^^^^^^^^^^^^ expected `Option<HINSTANCE>`, found `HINSTANCE`
+     |
+     = note: expected enum `std::option::Option<HINSTANCE>`
+              found struct `HINSTANCE`
+note: function defined here
+    --> C:\Users\Steve Business\.cargo\registry\src\index.crates.io-1949cf8c6b5b557f\windows-0.59.0\src\Windows\Win32\UI\WindowsAndMessaging\mod.rs:2316:15
+     |
+2316 | pub unsafe fn SetWindowsHookExW(idhook: WINDOWS_HOOK_ID, lpfn: HOOKPROC, hmod: Option<super::super::Foundation::HINSTANCE>, dwthreadid: u...
+     |               ^^^^^^^^^^^^^^^^^
+help: try wrapping the expression in `Some`
+     |
+ 126 |                 Some(HINSTANCE(h_mod.0)),
+     |                 +++++                  +
+
+error[E0505]: cannot move out of `app_clone` because it is borrowed
+  --> src\keyboard_hook.rs:52:65
+   |
+50 | ...                   let app_clone = app.clone();
+   |                           --------- binding `app_clone` declared here
+51 | ...                   // We can't block here.
+52 | ...                   let _ = app_clone.run_on_main_thread(move || {
+   |                               --------- ------------------ ^^^^^^^ move out of `app_clone` occurs here
+   |                               |         |
+   |                               |         borrow later used by call
+   |                               borrow of `app_clone` occurs here
+53 | ...                       toggle_window(&app_clone);
+   |                                          --------- move occurs due to use in closure
+   |
+help: consider cloning the value if the performance cost is acceptable
+   |
+52 |                            let _ = app_clone.clone().run_on_main_thread(move || {
+   |                                             ++++++++
+
+Some errors have detailed explanations: E0308, E0505.
+For more information about an error, try `rustc --explain E0308`.
+error: could not compile `rust_board` (lib) due to 2 previous errors
