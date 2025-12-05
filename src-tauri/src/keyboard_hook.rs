@@ -66,6 +66,14 @@ unsafe extern "system" fn low_level_keyboard_proc(
                 let rwin_actually_down = unsafe { (GetAsyncKeyState(VK_RWIN.0 as i32) as u16 & 0x8000) != 0 };
                 let win_actually_down = lwin_actually_down || rwin_actually_down;
                 
+                // FIX: Sync internal state with reality. 
+                // If GetAsyncKeyState says it's down, we must treat it as down, 
+                // even if we missed the hook event.
+                if win_actually_down && !*win_down {
+                    log_debug("SYNC: Internal state missed Win key down, correcting.");
+                    *win_down = true;
+                }
+
                 // Reset our tracked state if it doesn't match reality
                 if *win_down && !win_actually_down {
                     log_debug("RESET: Win key state was stuck, resetting to false");
@@ -169,4 +177,4 @@ fn log_debug(msg: &str) {
     {
         let _ = writeln!(file, "{}", msg);
     }
-}
+                                    }
